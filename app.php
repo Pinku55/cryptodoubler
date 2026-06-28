@@ -18,7 +18,7 @@ $themeColor  = Settings::get('theme_color', '#7c3aed');
 $monetagZone = Settings::get('monetag_zone_id', '11211905');
 $maintenance = Settings::getBool('maintenance_mode', false);
 $logo        = Settings::get('logo', '');
-$ver         = '1.1.1';
+$ver         = '1.1.2';
 ?>
 <!DOCTYPE html>
 <html lang="en">

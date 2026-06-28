@@ -62,6 +62,19 @@ final class Database
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::ATTR_STRINGIFY_FETCHES  => false,
             ]);
+
+            // Align the MySQL session timezone with PHP's timezone so NOW(),
+            // CURDATE(), UNIX_TIMESTAMP() and PHP date() all share one clock.
+            // This prevents cooldown/streak miscalculations on hosts where the
+            // database server timezone differs from the application timezone.
+            try {
+                $offset = (new DateTime('now'))->format('P'); // e.g. "+00:00"
+                self::$pdo->exec("SET time_zone = '{$offset}'");
+            } catch (Throwable $tzError) {
+                // Some shared hosts disallow named/offset timezones; ignore and
+                // continue (the SQL-based diff logic already clamps the result).
+                error_log('[MTASK][DB] timezone set skipped: ' . $tzError->getMessage());
+            }
         } catch (PDOException $e) {
             // Never leak credentials/SQL details to the client.
             error_log('[MTASK][DB] ' . $e->getMessage());
