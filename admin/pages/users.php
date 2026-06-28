@@ -141,6 +141,7 @@ adminHeader('Users', 'users', $admin);
         <div class="modal-header"><h5 class="modal-title">Manage <?= Security::e($u['first_name'] ?: ('#' . $id)) ?></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">
             <p class="mb-1"><b>Balance:</b> <?= mt((int) $u['balance']) ?> · <b>Referral:</b> <code><?= Security::e($u['referral_code']) ?></code></p>
+            <p class="mb-1"><b><i class="bi bi-hdd-network"></i> Register IP:</b> <code><?= Security::e($u['register_ip'] ?? '—') ?></code> · <b>Last IP:</b> <code><?= Security::e($u['last_ip'] ?? '—') ?></code></p>
             <hr>
             <form method="post" action="index.php?page=users" class="mb-3">
                 <?= Security::csrfField() ?>

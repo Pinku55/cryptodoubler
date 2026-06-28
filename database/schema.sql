@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `last_bonus_date`  DATE NULL,
     `status`           ENUM('active','banned') NOT NULL DEFAULT 'active',
     `last_ip`          VARCHAR(45) NULL,
+    `register_ip`      VARCHAR(45) NULL,
     `last_login`       DATETIME NULL,
     `created_at`       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
@@ -80,6 +81,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `uq_users_refcode` (`referral_code`),
     KEY `idx_users_referred_by` (`referred_by`),
     KEY `idx_users_status` (`status`),
+    KEY `idx_users_register_ip` (`register_ip`),
     KEY `idx_users_created` (`created_at`),
     CONSTRAINT `fk_users_referrer` FOREIGN KEY (`referred_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

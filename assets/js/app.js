@@ -10,10 +10,14 @@
     const tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) { tg.ready(); tg.expand(); }
 
+    // Telegram user object (unsafe = client-side, used for avatar display).
+    const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : {};
+
     // ----- Global state -----
     const State = {
         initData: tg ? tg.initData : '',
         ref: new URLSearchParams(location.search).get('ref') || (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '',
+        tgPhoto: tgUser.photo_url || '',
         user: null,
         settings: {},
         recent: [],
@@ -44,6 +48,7 @@
         const body = new FormData();
         body.append('initData', State.initData);
         if (State.ref) body.append('ref', State.ref);
+        if (State.tgPhoto) body.append('tg_photo', State.tgPhoto);
         Object.entries(params || {}).forEach(([k, v]) => body.append(k, v));
         try {
             const res = await fetch(window.MTASK.apiBase + endpoint, {
@@ -130,29 +135,29 @@
         const u = State.user;
         app.className = 'app-main fade-in';
         app.innerHTML = `
-            <div class="balance-card">
+            <div class="balance-card pop-in">
                 <div class="balance-label">Current Balance</div>
                 <div class="balance-amount">${fmt(u.balance)} <span style="font-size:18px">${esc(sym())}</span></div>
                 <div class="balance-usd">≈ $${(u.balance_usd || 0).toFixed(4)} USD</div>
-                <div class="coin"><i class="bi bi-coin"></i></div>
+                <div class="coin"><i class="fa-solid fa-coins"></i></div>
             </div>
 
-            <div class="stat-grid">
-                <div class="stat-card bg-purple"><div class="v">${fmt(u.total_earned)}</div><div class="l">Total Earned</div></div>
-                <div class="stat-card bg-blue"><div class="v">${fmt(u.total_referrals)}</div><div class="l">Referrals</div></div>
-                <div class="stat-card bg-green"><div class="v">${fmt(u.total_withdrawn)}</div><div class="l">Withdrawn</div></div>
+            <div class="stat-grid stagger">
+                <div class="stat-card bg-purple"><div class="v">${fmt(u.total_earned)}</div><div class="l"><i class="fa-solid fa-sack-dollar"></i> Total Earned</div></div>
+                <div class="stat-card bg-blue"><div class="v">${fmt(u.total_referrals)}</div><div class="l"><i class="fa-solid fa-user-group"></i> Referrals</div></div>
+                <div class="stat-card bg-green"><div class="v">${fmt(u.total_withdrawn)}</div><div class="l"><i class="fa-solid fa-money-bill-transfer"></i> Withdrawn</div></div>
             </div>
 
-            <div class="quick-card" data-go="earn">
+            <div class="quick-card pop-in" data-go="earn">
                 <div><h4>Start Earning Now!</h4><p>Watch ads &amp; complete tasks</p></div>
-                <div class="gift">🎁</div>
+                <div class="gift bounce">🎁</div>
             </div>
 
-            <div class="quick-btns">
-                <button class="quick-btn qb-ads" data-go="ads"><i class="bi bi-play-btn-fill"></i><span>Watch Ads</span></button>
-                <button class="quick-btn qb-tasks" data-go="tasks"><i class="bi bi-list-check"></i><span>Tasks</span></button>
-                <button class="quick-btn qb-bonus" data-go="bonus"><i class="bi bi-gift-fill"></i><span>Daily Bonus</span></button>
-                <button class="quick-btn qb-ref" data-go="referrals"><i class="bi bi-people-fill"></i><span>Referrals</span></button>
+            <div class="quick-btns stagger">
+                <button class="quick-btn qb-ads" data-go="ads"><i class="fa-solid fa-circle-play"></i><span>Watch Ads</span></button>
+                <button class="quick-btn qb-tasks" data-go="tasks"><i class="fa-solid fa-list-check"></i><span>Tasks</span></button>
+                <button class="quick-btn qb-bonus" data-go="bonus"><i class="fa-solid fa-gift"></i><span>Daily Bonus</span></button>
+                <button class="quick-btn qb-ref" data-go="referrals"><i class="fa-solid fa-users"></i><span>Referrals</span></button>
             </div>
 
             <div class="section-title">Recent Activity <a data-go="wallet">See all</a></div>
@@ -223,6 +228,7 @@
     // ===================================================================
     let adTimer = null;
     async function renderAds() {
+        clearInterval(adTimer);
         skeleton();
         const res = await api('ads.php', { action: 'status' });
         if (!res.ok) { app.innerHTML = errBox(res.message); return; }
@@ -231,74 +237,116 @@
         const pct = s.daily_limit > 0 ? Math.min(100, (s.today_count / s.daily_limit) * 100) : 0;
         app.innerHTML = `
             <div class="page-header hdr-purple ad-hero">
-                <div class="ad-icon">📺</div>
+                <div class="ad-icon pulse"><i class="fa-solid fa-clapperboard"></i></div>
                 <div class="ad-reward-big">+${fmt(s.reward)} ${esc(sym())}</div>
                 <p>Reward per ad</p>
                 <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-                <p style="margin-top:8px">${s.today_count}/${s.daily_limit > 0 ? s.daily_limit : '∞'} ads today</p>
+                <p style="margin-top:8px"><i class="fa-solid fa-chart-simple"></i> ${s.today_count}/${s.daily_limit > 0 ? s.daily_limit : '∞'} ads today</p>
             </div>
 
-            <div class="card-soft mt-12">
-                <h5 style="font-weight:800">How it works</h5>
+            <div class="card-soft mt-12 fade-in">
+                <h5 style="font-weight:800"><i class="fa-solid fa-circle-info" style="color:var(--purple)"></i> How it works</h5>
                 <ol class="text-muted2" style="padding-left:18px;font-size:14px;line-height:1.9">
                     <li>Tap "Watch Ad Now"</li><li>Complete the full ad</li>
-                    <li>Receive your reward instantly</li><li>Repeat to earn more!</li>
+                    <li>Receive your reward instantly</li><li>Wait ${s.cooldown}s, then repeat!</li>
                 </ol>
             </div>
 
-            <button class="btn-grad mt-12" id="watchAdBtn">
-                <i class="bi bi-play-fill"></i> <span id="adBtnText">Watch Ad Now</span>
+            <button class="btn-grad mt-12 pulse" id="watchAdBtn">
+                <i class="fa-solid fa-circle-play"></i> <span id="adBtnText">Watch Ad Now</span>
             </button>
-            <p class="center text-muted2 mt-12" id="adHint"></p>`;
+            <p class="center text-muted2 mt-12" id="adHint"><i class="fa-solid fa-shield-halved"></i> Reward is credited only after the ad completes.</p>`;
 
         const btn = $('#watchAdBtn');
-        const updateBtn = (st) => {
-            if (st.cooldown_left > 0) {
-                btn.disabled = true;
-                let left = st.cooldown_left;
-                $('#adBtnText').textContent = 'Wait ' + left + 's';
-                clearInterval(adTimer);
-                adTimer = setInterval(() => {
-                    left--;
-                    if (left <= 0) { clearInterval(adTimer); btn.disabled = false; $('#adBtnText').textContent = 'Watch Ad Now'; }
-                    else $('#adBtnText').textContent = 'Wait ' + left + 's';
-                }, 1000);
-            } else if (st.remaining <= 0 && st.daily_limit > 0) {
-                btn.disabled = true; $('#adBtnText').textContent = 'Daily limit reached';
-            }
-        };
-        updateBtn(s);
 
-        btn.addEventListener('click', () => watchAd(btn));
+        // Start the cooldown / "waiting time" countdown if needed.
+        function startCooldown(seconds) {
+            clearInterval(adTimer);
+            btn.disabled = true;
+            btn.classList.remove('pulse');
+            let left = Math.max(0, parseInt(seconds, 10) || 0);
+            const tick = () => {
+                if (left <= 0) {
+                    clearInterval(adTimer);
+                    btn.disabled = false;
+                    btn.classList.add('pulse');
+                    $('#adBtnText').textContent = 'Watch Ad Now';
+                    $('#adHint').innerHTML = '<i class="fa-solid fa-shield-halved"></i> Reward is credited only after the ad completes.';
+                    return;
+                }
+                $('#adBtnText').textContent = 'Please wait ' + left + 's';
+                $('#adHint').innerHTML = '<i class="fa-regular fa-clock"></i> Next ad available in <b>' + left + 's</b>';
+                left--;
+            };
+            tick();
+            adTimer = setInterval(tick, 1000);
+        }
+
+        if (s.daily_limit > 0 && s.remaining <= 0) {
+            btn.disabled = true;
+            btn.classList.remove('pulse');
+            $('#adBtnText').textContent = 'Daily limit reached';
+            $('#adHint').innerHTML = '<i class="fa-solid fa-hourglass-end"></i> Come back tomorrow for more ads.';
+        } else if (s.cooldown_left > 0) {
+            startCooldown(s.cooldown_left);
+        }
+
+        btn.addEventListener('click', () => watchAd(btn, s.cooldown));
     }
 
-    function watchAd(btn) {
+    function watchAd(btn, cooldown) {
         const zone = window.MTASK.monetagZone;
         const fnName = 'show_' + zone;
+        clearInterval(adTimer);
         btn.disabled = true;
+        btn.classList.remove('pulse');
         $('#adBtnText').textContent = 'Loading ad...';
+        $('#adHint').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading your ad…';
 
         const reward = async () => {
             const res = await api('ads.php', { action: 'claim' });
             if (res.ok) {
                 toast(res.message, 'success');
                 State.user.balance = res.data.balance;
-                renderAds();
+                renderAds(); // re-render -> shows the waiting countdown
             } else {
-                btn.disabled = false; $('#adBtnText').textContent = 'Watch Ad Now';
+                btn.disabled = false;
+                btn.classList.add('pulse');
+                $('#adBtnText').textContent = 'Watch Ad Now';
             }
         };
 
+        const failed = () => {
+            toast('Ad was not completed.', 'warn');
+            btn.disabled = false;
+            btn.classList.add('pulse');
+            $('#adBtnText').textContent = 'Watch Ad Now';
+            $('#adHint').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Please watch the full ad to earn.';
+        };
+
         if (typeof window[fnName] === 'function') {
-            // Monetag rewarded popup. Reward ONLY after the promise resolves.
-            window[fnName]('pop').then(reward).catch(() => {
-                toast('Ad was not completed.', 'warn');
-                btn.disabled = false; $('#adBtnText').textContent = 'Watch Ad Now';
-            });
+            // New Monetag rewarded interstitial: show_<zone>().then(reward)
+            // Reward is granted ONLY after the promise resolves (ad completed).
+            try {
+                const p = window[fnName]();
+                if (p && typeof p.then === 'function') {
+                    p.then(reward).catch(failed);
+                } else {
+                    reward();
+                }
+            } catch (e) {
+                failed();
+            }
         } else {
-            // Fallback (SDK not loaded, e.g. outside Telegram): simulate delay.
-            toast('Loading ad…', '');
-            setTimeout(reward, 2500);
+            // Fallback (SDK not loaded, e.g. outside Telegram): enforce a short
+            // waiting time then reward so the flow remains testable.
+            let left = 5;
+            $('#adBtnText').textContent = 'Ad playing ' + left + 's';
+            const iv = setInterval(() => {
+                left--;
+                if (left <= 0) { clearInterval(iv); reward(); }
+                else $('#adBtnText').textContent = 'Ad playing ' + left + 's';
+            }, 1000);
         }
     }
 
@@ -576,11 +624,13 @@
         if (!res.ok) { app.innerHTML = errBox(res.message); return; }
         const p = res.data;
         app.className = 'app-main fade-in';
-        const avatar = p.photo_url ? `style="background-image:url('${esc(p.photo_url)}')"` : '';
+        const photo = p.photo_url || State.tgPhoto || '';
+        const avatar = photo ? `style="background-image:url('${esc(photo)}')"` : '';
+        const initial = esc((p.first_name || 'U').charAt(0).toUpperCase());
         const sup = p.support || {};
         app.innerHTML = `
             <div class="profile-head">
-                <div class="profile-avatar" ${avatar}></div>
+                <div class="profile-avatar fade-in" ${avatar}>${photo ? '' : initial}</div>
                 <div class="profile-name">${esc(p.first_name || 'User')} ${esc(p.last_name || '')}</div>
                 <div class="profile-username">${p.username ? '@' + esc(p.username) : ''}</div>
             </div>
@@ -626,7 +676,14 @@
         // Populate side menu identity.
         $('#menuName').textContent = (State.user.first_name || 'User') + (State.user.last_name ? ' ' + State.user.last_name : '');
         $('#menuId').textContent = State.user.username ? '@' + State.user.username : 'ID ' + State.user.telegram_id;
-        if (State.user.photo_url) $('#menuAvatar').style.backgroundImage = `url('${State.user.photo_url}')`;
+        const menuPhoto = State.user.photo_url || State.tgPhoto;
+        if (menuPhoto) {
+            $('#menuAvatar').style.backgroundImage = `url('${menuPhoto}')`;
+            $('#menuAvatar').style.backgroundSize = 'cover';
+            $('#menuAvatar').style.backgroundPosition = 'center';
+        } else {
+            $('#menuAvatar').textContent = (State.user.first_name || 'U').charAt(0).toUpperCase();
+        }
         if (State.settings.announcement) $('#notifDot').hidden = false;
 
         navigate('home');

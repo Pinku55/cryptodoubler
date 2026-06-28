@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!$alreadyInstalled || $forceReinst
         header('Location: install.php?step=5');
         exit;
     } elseif ($current === 5) {
-        saveStep(['monetag_zone' => post('monetag_zone', '9660124')]);
+        saveStep(['monetag_zone' => post('monetag_zone', '11211905')]);
         header('Location: install.php?step=6');
         exit;
     } elseif ($current === 6) {
@@ -409,8 +409,8 @@ $steps = [
             <?php elseif ($step === 5): ?>
                 <h3>Step 5 &middot; Monetag Zone ID</h3>
                 <label>Monetag Rewarded Zone ID</label>
-                <input name="monetag_zone" value="<?= htmlspecialchars(post('monetag_zone', '9660124')) ?>">
-                <div class="hint">Used for the rewarded video popup: <code>show_&lt;zone&gt;('pop')</code>.</div>
+                <input name="monetag_zone" value="<?= htmlspecialchars(post('monetag_zone', '11211905')) ?>">
+                <div class="hint">Used for the rewarded interstitial: <code>show_&lt;zone&gt;()</code>.</div>
                 <button class="btn" type="submit">Continue &rarr;</button>
 
             <?php elseif ($step === 6): ?>

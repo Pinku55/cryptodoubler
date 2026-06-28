@@ -65,6 +65,19 @@ final class User
             $code = Security::randomCode(8);
         } while (Database::scalar('SELECT 1 FROM users WHERE referral_code = ?', [$code]));
 
+        $ip = Security::clientIp();
+
+        // Enforce "one account per IP" if enabled. The same Telegram account
+        // returning is always allowed (handled above); this only blocks a NEW
+        // Telegram account registering from an IP already used by another user.
+        if (Settings::getBool('one_account_per_ip', true) && $ip !== '0.0.0.0') {
+            $dupe = Database::scalar('SELECT telegram_id FROM users WHERE register_ip = ? LIMIT 1', [$ip]);
+            if ($dupe !== false && $dupe !== null) {
+                Logger::security('Blocked multi-account registration', ['ip' => $ip, 'telegram_id' => $telegramId]);
+                throw new RuntimeException('IP_LIMIT');
+            }
+        }
+
         $id = Database::insert('users', [
             'telegram_id'   => $telegramId,
             'username'      => $tg['username'] ?? null,
@@ -76,7 +89,8 @@ final class User
             'referred_by'   => $referrerId,
             'balance'       => 0,
             'status'        => 'active',
-            'last_ip'       => Security::clientIp(),
+            'last_ip'       => $ip,
+            'register_ip'   => $ip,
             'last_login'    => date('Y-m-d H:i:s'),
             'created_at'    => date('Y-m-d H:i:s'),
         ]);

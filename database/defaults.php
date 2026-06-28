@@ -29,9 +29,9 @@ return [
         'usd_per_min_withdraw' => '2',       // display helper
 
         // Rewarded ads (Monetag)
-        'monetag_zone_id'      => '9660124',
+        'monetag_zone_id'      => '11211905',
         'ad_reward'            => '50',
-        'ad_cooldown'          => '30',      // seconds between ads
+        'ad_cooldown'          => '15',      // seconds between ads (waiting time)
         'ad_daily_limit'       => '50',      // ads per day per user
         'ad_max_earnings'      => '0',       // 0 = unlimited per day
         'ads_enabled'          => '1',
@@ -54,6 +54,7 @@ return [
         'support_username'     => '',
         'privacy_url'          => '',
         'terms_url'            => '',
+        'one_account_per_ip'   => '1',       // 1 = allow only one account per IP
     ],
 
     // -----------------------------------------------------------------

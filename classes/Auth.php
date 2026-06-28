@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 final class Auth
 {
+    /** @var string|null Last authentication error code (e.g. "ip_limit"). */
+    public static ?string $error = null;
+
     private function __construct() {}
 
     // -----------------------------------------------------------------
@@ -29,8 +32,10 @@ final class Auth
      */
     public static function authenticateWebApp(string $initData, ?string $refCode = null): ?array
     {
+        self::$error = null;
         $verified = Telegram::verifyInitData($initData);
         if ($verified === null || empty($verified['user']['id'])) {
+            self::$error = 'invalid';
             return null;
         }
 
@@ -39,9 +44,18 @@ final class Auth
             $refCode = (string) $verified['start_param'];
         }
 
-        $user = User::findOrCreate($verified['user'], $refCode);
+        try {
+            $user = User::findOrCreate($verified['user'], $refCode);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'IP_LIMIT') {
+                self::$error = 'ip_limit';
+                return null;
+            }
+            throw $e;
+        }
 
         if (($user['status'] ?? 'active') === 'banned') {
+            self::$error = 'banned';
             return null; // banned users cannot authenticate
         }
 
@@ -79,6 +93,13 @@ final class Auth
             $user = self::authenticateWebApp($initData, $_POST['ref'] ?? null);
             if ($user !== null) {
                 return $user;
+            }
+            // Provide a clear reason when authentication was rejected.
+            if (self::$error === 'ip_limit') {
+                Response::error('Only one account is allowed per device/IP address.', 403);
+            }
+            if (self::$error === 'banned') {
+                Response::error('Your account has been suspended.', 403);
             }
         }
 

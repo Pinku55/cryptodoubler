@@ -282,6 +282,38 @@ body {
 .fade-in { animation: fadeIn .35s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* Pulse (attention) animation for primary CTAs and the ad icon */
+.pulse { animation: pulse 1.8s ease-in-out infinite; }
+@keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 12px 30px rgba(124,58,237,.18); }
+    50% { transform: scale(1.03); box-shadow: 0 16px 40px rgba(124,58,237,.32); }
+}
+
+/* Pop-in entrance (used for cards / list items) */
+.pop-in { animation: popIn .4s cubic-bezier(.18,.89,.32,1.28) both; }
+@keyframes popIn { from { opacity: 0; transform: scale(.85) translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Staggered children entrance */
+.stagger > * { animation: popIn .45s cubic-bezier(.18,.89,.32,1.28) both; }
+.stagger > *:nth-child(1) { animation-delay: .03s; }
+.stagger > *:nth-child(2) { animation-delay: .08s; }
+.stagger > *:nth-child(3) { animation-delay: .13s; }
+.stagger > *:nth-child(4) { animation-delay: .18s; }
+.stagger > *:nth-child(5) { animation-delay: .23s; }
+.stagger > *:nth-child(6) { animation-delay: .28s; }
+
+/* Spin (loading) */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Bounce (reward / celebrate) */
+.bounce { animation: bounce .6s ease; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-12px); } 60% { transform: translateY(-5px); } }
+
+/* Avatar initial fallback */
+.profile-avatar, .side-avatar, #menuAvatar { display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 28px; }
+.side-avatar, #menuAvatar { font-size: 20px; }
+
 .text-muted2 { color: var(--muted); }
 .center { text-align: center; }
 .mt-12 { margin-top: 12px; }

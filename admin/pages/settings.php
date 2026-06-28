@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     Settings::set('maintenance_mode', isset($_POST['maintenance_mode']) ? '1' : '0');
+    Settings::set('one_account_per_ip', isset($_POST['one_account_per_ip']) ? '1' : '0');
 
     // Logo / favicon upload.
     foreach (['logo', 'favicon'] as $imgKey) {
@@ -111,6 +112,7 @@ adminHeader('Settings', 'settings', $admin);
         <div class="col-lg-6"><div class="card"><div class="card-body">
             <h6 class="fw-bold mb-3">Maintenance &amp; Announcement</h6>
             <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" name="maintenance_mode" id="mm" <?= Settings::getBool('maintenance_mode') ? 'checked' : '' ?>><label class="form-check-label" for="mm">Maintenance mode (blocks the Mini App)</label></div>
+            <div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" name="one_account_per_ip" id="oapi" <?= Settings::getBool('one_account_per_ip', true) ? 'checked' : '' ?>><label class="form-check-label" for="oapi"><i class="bi bi-shield-lock"></i> Allow only one account per IP address</label></div>
             <div class="mb-2"><label class="form-label">Announcement / maintenance message</label><textarea class="form-control" name="announcement" rows="3"><?= $g('announcement') ?></textarea></div>
         </div></div></div>
     </div>

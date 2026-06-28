@@ -40,6 +40,7 @@ $displayEarned = number_format($totalEarned + 18000000);
 <meta name="description" content="<?= Security::e($siteName) ?> is a Telegram earning app. Watch ads, complete tasks, claim daily bonuses and refer friends to earn rewards.">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <style>
     :root { --purple:#7c3aed; --blue:#2563eb; --green:#16a34a; --orange:#f59e0b; }
     * { box-sizing:border-box; }

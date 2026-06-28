@@ -6,7 +6,7 @@
  *
  * POST action=status : returns reward config + today's progress + cooldown.
  * POST action=claim  : credits the ad reward after the front-end confirms
- *                      the Monetag popup completed (show_<zone>('pop').then).
+ *                      the Monetag interstitial completed (show_<zone>().then).
  *
  * Anti-abuse: per-user daily limit, cooldown between ads, rate limiter and
  * an IP recorded on every view.
@@ -54,7 +54,7 @@ function adStatus(int $userId, int $reward, int $cooldown, int $dailyLimit): arr
         'cooldown'      => $cooldown,
         'cooldown_left' => $cooldownLeft,
         'can_watch'     => ($dailyLimit === 0 || $todayCount < $dailyLimit) && $cooldownLeft === 0,
-        'monetag_zone'  => Settings::get('monetag_zone_id', '9660124'),
+        'monetag_zone'  => Settings::get('monetag_zone_id', '11211905'),
     ];
 }
 

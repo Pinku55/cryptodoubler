@@ -15,10 +15,10 @@ require __DIR__ . '/includes/bootstrap.php';
 
 $siteName    = Settings::get('site_name', 'MTASK');
 $themeColor  = Settings::get('theme_color', '#7c3aed');
-$monetagZone = Settings::get('monetag_zone_id', '9660124');
+$monetagZone = Settings::get('monetag_zone_id', '11211905');
 $maintenance = Settings::getBool('maintenance_mode', false);
 $logo        = Settings::get('logo', '');
-$ver         = '1.0.0';
+$ver         = '1.1.0';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,9 +31,10 @@ $ver         = '1.0.0';
 <!-- Telegram WebApp SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Bootstrap 5 + Icons -->
+<!-- Bootstrap 5 + Icons + Font Awesome -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
 <link href="assets/css/app.css?v=<?= $ver ?>" rel="stylesheet">
 
 <!-- Monetag Rewarded SDK (provides show_<zone>()) -->

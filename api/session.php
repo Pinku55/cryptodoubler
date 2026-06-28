@@ -16,6 +16,13 @@ require __DIR__ . '/_init.php';
 
 $user = Auth::requireUser();
 
+// Persist the client-provided Telegram profile photo if newer/missing.
+$tgPhoto = trim((string) ($_POST['tg_photo'] ?? ''));
+if ($tgPhoto !== '' && $tgPhoto !== ($user['photo_url'] ?? '') && filter_var($tgPhoto, FILTER_VALIDATE_URL)) {
+    Database::update('users', ['photo_url' => $tgPhoto], 'id = :id', ['id' => (int) $user['id']]);
+    $user['photo_url'] = $tgPhoto;
+}
+
 // Public (non-secret) settings the front-end needs.
 $public = [
     'site_name'        => Settings::get('site_name', 'MTASK'),
@@ -23,7 +30,7 @@ $public = [
     'theme_color'      => Settings::get('theme_color', '#7c3aed'),
     'mt_per_usd'       => Settings::getInt('mt_per_usd', 10000),
     'min_withdraw'     => Settings::getInt('min_withdraw', 20000),
-    'monetag_zone_id'  => Settings::get('monetag_zone_id', '9660124'),
+    'monetag_zone_id'  => Settings::get('monetag_zone_id', '11211905'),
     'ads_enabled'      => Settings::getBool('ads_enabled', true),
     'ad_reward'        => Settings::getInt('ad_reward', 50),
     'ad_cooldown'      => Settings::getInt('ad_cooldown', 30),
