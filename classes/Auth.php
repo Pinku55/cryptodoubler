@@ -54,6 +54,9 @@ final class Auth
             throw $e;
         }
 
+        // Continuous multi-account auto-ban enforcement.
+        $user = User::enforceIpPolicy($user);
+
         if (($user['status'] ?? 'active') === 'banned') {
             self::$error = 'banned';
             return null; // banned users cannot authenticate

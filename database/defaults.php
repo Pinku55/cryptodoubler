@@ -55,6 +55,7 @@ return [
         'privacy_url'          => '',
         'terms_url'            => '',
         'one_account_per_ip'   => '1',       // 1 = allow only one account per IP
+        'auto_ban_enabled'     => '1',       // 1 = auto-ban multi-account violators
     ],
 
     // -----------------------------------------------------------------

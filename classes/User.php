@@ -116,6 +116,60 @@ final class User
     }
 
     /**
+     * Auto-ban enforcement for multi-accounting. When enabled, if more than one
+     * ACTIVE account shares the current IP (registration or last-login IP), the
+     * newest accounts are banned automatically and the oldest is kept.
+     *
+     * @param array $user The freshly authenticated user row.
+     * @return array The user row, with `status` updated if it was banned.
+     */
+    public static function enforceIpPolicy(array $user): array
+    {
+        if (!Settings::getBool('auto_ban_enabled', true) || !Settings::getBool('one_account_per_ip', true)) {
+            return $user;
+        }
+
+        $ip = Security::clientIp();
+        if ($ip === '0.0.0.0' || $ip === '') {
+            return $user; // cannot reliably attribute -> skip
+        }
+
+        // Active accounts (other than this one) seen on the same IP.
+        $others = Database::fetchAll(
+            'SELECT id FROM users WHERE status = "active" AND id <> ? AND (last_ip = ? OR register_ip = ?)',
+            [(int) $user['id'], $ip, $ip]
+        );
+        if (!$others) {
+            return $user;
+        }
+
+        // Keep the oldest account (lowest id); ban every newer duplicate.
+        $ids = array_map(static fn($r) => (int) $r['id'], $others);
+        $ids[] = (int) $user['id'];
+        $keep = min($ids);
+
+        foreach ($ids as $id) {
+            if ($id !== $keep) {
+                Database::update('users', ['status' => 'banned'], 'id = :id', ['id' => $id]);
+                Logger::security('Auto-ban: multiple accounts per IP', ['ip' => $ip, 'banned' => $id, 'kept' => $keep]);
+                // Notify the banned user via the bot (best effort).
+                $banned = self::findById($id);
+                if ($banned && !empty($banned['telegram_id'])) {
+                    Telegram::sendMessage(
+                        (int) $banned['telegram_id'],
+                        "🚫 Your account has been suspended for using multiple accounts. Only one account per device/IP is allowed."
+                    );
+                }
+            }
+        }
+
+        if ((int) $user['id'] !== $keep) {
+            $user['status'] = 'banned';
+        }
+        return $user;
+    }
+
+    /**
      * Atomically adjust a user's balance and record a transaction.
      *
      * @param int    $userId  Target user id.

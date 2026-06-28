@@ -64,19 +64,16 @@ if ($existing && $existing['status'] === 'completed') {
 
 if ($action === 'start') {
     if ($existing) {
-        Database::update('task_completions', [
-            'started_at' => date('Y-m-d H:i:s'),
-            'status'     => 'started',
-        ], 'id = :id', ['id' => $existing['id']]);
+        Database::query(
+            'UPDATE task_completions SET started_at = NOW(), status = "started" WHERE id = ?',
+            [$existing['id']]
+        );
     } else {
-        Database::insert('task_completions', [
-            'task_id'    => $taskId,
-            'user_id'    => $userId,
-            'status'     => 'started',
-            'reward'     => (int) $task['reward'],
-            'started_at' => date('Y-m-d H:i:s'),
-            'ip_address' => Security::clientIp(),
-        ]);
+        Database::query(
+            'INSERT INTO task_completions (task_id, user_id, status, reward, started_at, ip_address)
+             VALUES (?, ?, "started", ?, NOW(), ?)',
+            [$taskId, $userId, (int) $task['reward'], Security::clientIp()]
+        );
     }
     Response::success(['wait_time' => (int) $task['wait_time']], 'Task started.');
 }
@@ -86,8 +83,12 @@ if ($action === 'claim') {
         Response::error('Please start the task first.', 400);
     }
 
-    // Timer verification: ensure the wait time elapsed since start.
-    $waited = time() - strtotime((string) $existing['started_at']);
+    // Timer verification: ensure the wait time elapsed since start. Computed in
+    // SQL so started_at and NOW() share one clock (timezone-safe).
+    $waited = (int) Database::scalar(
+        'SELECT GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, NOW())) FROM task_completions WHERE id = ?',
+        [$existing['id']]
+    );
     if ($waited < (int) $task['wait_time']) {
         Response::error('Please wait ' . ((int) $task['wait_time'] - $waited) . 's more before claiming.', 425);
     }
