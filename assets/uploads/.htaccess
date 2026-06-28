@@ -1,0 +1,5 @@
+# Allow images to be served but never execute uploaded scripts.
+php_flag engine off
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|pl|py|cgi|sh|asp)$">
+    Require all denied
+</FilesMatch>
