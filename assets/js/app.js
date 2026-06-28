@@ -288,7 +288,7 @@
             $('#adBtnText').textContent = 'Daily limit reached';
             $('#adHint').innerHTML = '<i class="fa-solid fa-hourglass-end"></i> Come back tomorrow for more ads.';
         } else if (s.cooldown_left > 0) {
-            startCooldown(s.cooldown_left);
+            startCooldown(Math.min(s.cooldown_left, s.cooldown));
         }
 
         btn.addEventListener('click', () => watchAd(btn, s.cooldown));

@@ -34,17 +34,23 @@ $maxEarn    = Settings::getInt('ad_max_earnings', 0); // 0 = unlimited
 /** Build the current ad status for the user. */
 function adStatus(int $userId, int $reward, int $cooldown, int $dailyLimit): array
 {
-    $today = date('Y-m-d');
     $todayCount = (int) Database::scalar(
-        'SELECT COUNT(*) FROM ad_views WHERE user_id = ? AND DATE(created_at) = ?',
-        [$userId, $today]
-    );
-    $lastView = Database::scalar(
-        'SELECT UNIX_TIMESTAMP(created_at) FROM ad_views WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+        'SELECT COUNT(*) FROM ad_views WHERE user_id = ? AND DATE(created_at) = CURDATE()',
         [$userId]
     );
-    $secondsSince = $lastView ? (time() - (int) $lastView) : PHP_INT_MAX;
-    $cooldownLeft = max(0, $cooldown - $secondsSince);
+    // Compute the elapsed time since the last ad entirely in SQL so the value
+    // is independent of any PHP/MySQL timezone difference (NOW() and created_at
+    // are both evaluated in the MySQL session timezone).
+    $secondsSince = Database::scalar(
+        'SELECT TIMESTAMPDIFF(SECOND, MAX(created_at), NOW()) FROM ad_views WHERE user_id = ?',
+        [$userId]
+    );
+    if ($secondsSince === null) {
+        $secondsSince = PHP_INT_MAX;       // user has never watched an ad
+    } else {
+        $secondsSince = max(0, (int) $secondsSince); // clamp clock skew
+    }
+    $cooldownLeft = max(0, min($cooldown, $cooldown - $secondsSince));
 
     return [
         'reward'        => $reward,
@@ -68,10 +74,9 @@ if ($action === 'claim') {
         Response::error('Please wait for the cooldown before watching another ad.', 429);
     }
 
-    $today = date('Y-m-d');
     $todayCount = (int) Database::scalar(
-        'SELECT COUNT(*) FROM ad_views WHERE user_id = ? AND DATE(created_at) = ?',
-        [$userId, $today]
+        'SELECT COUNT(*) FROM ad_views WHERE user_id = ? AND DATE(created_at) = CURDATE()',
+        [$userId]
     );
     if ($dailyLimit > 0 && $todayCount >= $dailyLimit) {
         Response::error('Daily ad limit reached. Come back tomorrow!', 429);
@@ -80,20 +85,21 @@ if ($action === 'claim') {
     // Optional daily earnings cap from ads.
     if ($maxEarn > 0) {
         $earnedToday = (int) Database::scalar(
-            'SELECT COALESCE(SUM(reward),0) FROM ad_views WHERE user_id = ? AND DATE(created_at) = ?',
-            [$userId, $today]
+            'SELECT COALESCE(SUM(reward),0) FROM ad_views WHERE user_id = ? AND DATE(created_at) = CURDATE()',
+            [$userId]
         );
         if ($earnedToday + $reward > $maxEarn) {
             Response::error('You reached the maximum ad earnings for today.', 429);
         }
     }
 
-    // Record the view and credit the reward.
+    // Record the view (created_at uses the DB's CURRENT_TIMESTAMP default so the
+    // cooldown comparison against NOW() is always on a single, consistent clock)
+    // and credit the reward.
     Database::insert('ad_views', [
         'user_id'    => $userId,
         'reward'     => $reward,
         'ip_address' => Security::clientIp(),
-        'created_at' => date('Y-m-d H:i:s'),
     ]);
     $newBalance = User::adjustBalance($userId, $reward, User::TX_AD, 'Rewarded ad', ['ip' => Security::clientIp()]);
 
