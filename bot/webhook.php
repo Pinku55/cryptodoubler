@@ -41,6 +41,24 @@ if (!is_array($update)) {
 
 Logger::log('bot', 'INFO', 'Update received', ['id' => $update['update_id'] ?? null]);
 
+// ---------------------------------------------------------------------------
+// Bot protections
+// ---------------------------------------------------------------------------
+// 1) Ignore updates originating from other bots.
+$fromGlobal = $update['message']['from'] ?? $update['callback_query']['from'] ?? [];
+if (!empty($fromGlobal['is_bot'])) {
+    http_response_code(200);
+    exit;
+}
+
+// 2) Per-user flood control: silently drop abusive bursts.
+$floodId = (int) ($update['message']['from']['id'] ?? $update['callback_query']['from']['id'] ?? 0);
+if ($floodId && !Security::rateLimit('botflood:' . $floodId, 20, 60)) {
+    Logger::security('Bot flood control triggered', ['user' => $floodId]);
+    http_response_code(200);
+    exit;
+}
+
 $baseUrl     = rtrim((string) config('app.base_url', ''), '/');
 $appUrl      = $baseUrl . '/app.php';
 $botUsername = Settings::get('telegram_bot_username', '');
@@ -57,7 +75,7 @@ function openAppKeyboard(string $appUrl): array
 if (isset($update['message'])) {
     $message = $update['message'];
     $chatId  = (int) ($message['chat']['id'] ?? 0);
-    $text    = trim((string) ($message['text'] ?? ''));
+    $text    = substr(trim((string) ($message['text'] ?? '')), 0, 4096);
     $from    = $message['from'] ?? [];
 
     // Build a minimal Telegram user array for User::findOrCreate.

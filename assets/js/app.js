@@ -370,53 +370,91 @@
         const cards = tasks.length ? tasks.map(t => {
             const cat = TASK_CAT[t.category] || TASK_CAT.other;
             const done = t.user_status === 'completed';
-            return `<div class="task-card" data-task='${esc(JSON.stringify({ id: t.id, wait: t.wait_time, url: t.url, status: t.user_status }))}'>
+            return `<div class="task-card pop-in" data-task='${esc(JSON.stringify({ id: t.id, wait: t.wait_time, url: t.url, status: t.user_status }))}'>
                 <div class="task-cat ${cat.c}"><i class="bi ${cat.i}"></i></div>
                 <div class="task-info">
                     <h5>${esc(t.title)}</h5>
-                    <span class="reward">+${fmt(t.reward)} ${esc(sym())}</span>
+                    <span class="reward"><i class="fa-solid fa-coins"></i> +${fmt(t.reward)} ${esc(sym())}</span>
                 </div>
                 <button class="task-btn ${done ? 'done' : ''}" ${done ? 'disabled' : ''}>${done ? 'Done' : 'Start'}</button>
             </div>`;
-        }).join('') : '<div class="empty"><i class="bi bi-list-check"></i>No tasks available right now</div>';
+        }).join('') : '<div class="empty"><i class="fa-solid fa-list-check"></i>No tasks available right now</div>';
 
         app.innerHTML = `
-            <div class="page-header hdr-green"><h2><i class="bi bi-list-check"></i> Tasks</h2><p>Complete tasks to earn ${esc(sym())}</p></div>
-            <div class="mt-12">${cards}</div>`;
+            <div class="page-header hdr-green"><h2><i class="fa-solid fa-list-check"></i> Tasks</h2><p>Complete tasks to earn ${esc(sym())}</p></div>
+            <div class="mt-12 stagger">${cards}</div>`;
 
-        $$('.task-card .task-btn').forEach(b => {
-            b.addEventListener('click', () => {
-                const data = JSON.parse(b.closest('.task-card').getAttribute('data-task'));
-                startTask(data, b);
-            });
+        // Bind ONE state-machine handler per task button to avoid the
+        // double-binding bug (where clicking "Claim" also re-triggered "Start").
+        $$('.task-card').forEach(card => {
+            const data = JSON.parse(card.getAttribute('data-task'));
+            const btn = card.querySelector('.task-btn');
+            if (!btn || data.status === 'completed') return;
+            bindTask(card, btn, data);
         });
     }
 
-    async function startTask(t, btn) {
-        if (t.status === 'completed') return;
-        btn.disabled = true;
-        const res = await api('tasks.php', { action: 'start', task_id: t.id });
-        if (!res.ok) { btn.disabled = false; return; }
-        if (t.url) { if (tg && tg.openLink) tg.openLink(t.url); else window.open(t.url, '_blank'); }
+    // Per-task interaction controller. State: new -> wait -> claim -> done.
+    function bindTask(card, btn, data) {
+        let state = 'new';
+        let timer = null;
 
-        let left = res.data.wait_time || t.wait;
-        btn.textContent = left + 's';
-        const iv = setInterval(async () => {
-            left--;
-            if (left > 0) { btn.textContent = left + 's'; return; }
-            clearInterval(iv);
-            btn.textContent = 'Claim';
-            btn.disabled = false;
-            btn.onclick = async () => {
+        btn.addEventListener('click', async () => {
+            // Ignore clicks while waiting or when finished.
+            if (state === 'wait' || state === 'done') return;
+
+            if (state === 'new') {
                 btn.disabled = true;
-                const c = await api('tasks.php', { action: 'claim', task_id: t.id });
+                btn.textContent = '...';
+                const res = await api('tasks.php', { action: 'start', task_id: data.id });
+                if (!res.ok) { btn.disabled = false; btn.textContent = 'Start'; return; }
+
+                // Open the task link.
+                if (data.url) {
+                    if (tg && tg.openLink) tg.openLink(data.url);
+                    else window.open(data.url, '_blank');
+                }
+
+                // Begin the mandatory waiting countdown.
+                state = 'wait';
+                let left = parseInt(res.data.wait_time, 10) || data.wait || 15;
+                btn.disabled = true;
+                btn.textContent = left + 's';
+                clearInterval(timer);
+                timer = setInterval(() => {
+                    left--;
+                    if (left > 0) { btn.textContent = left + 's'; return; }
+                    clearInterval(timer);
+                    state = 'claim';
+                    btn.disabled = false;
+                    btn.textContent = 'Claim';
+                    btn.classList.add('ready', 'pulse');
+                }, 1000);
+                return;
+            }
+
+            if (state === 'claim') {
+                btn.disabled = true;
+                btn.classList.remove('pulse');
+                btn.textContent = '...';
+                const c = await api('tasks.php', { action: 'claim', task_id: data.id });
                 if (c.ok) {
                     toast(c.message, 'success');
                     State.user.balance = c.data.balance;
-                    btn.textContent = 'Done'; btn.classList.add('done');
-                } else { btn.disabled = false; btn.textContent = 'Claim'; }
-            };
-        }, 1000);
+                    state = 'done';
+                    btn.textContent = 'Done';
+                    btn.classList.add('done');
+                    btn.classList.remove('ready');
+                    card.classList.add('bounce');
+                } else {
+                    // Allow the user to retry claiming (e.g. membership not met yet).
+                    state = 'claim';
+                    btn.disabled = false;
+                    btn.classList.add('pulse');
+                    btn.textContent = 'Claim';
+                }
+            }
+        });
     }
 
     // ===================================================================

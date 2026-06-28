@@ -1,0 +1,4 @@
+# Block direct access to internal API includes (files starting with underscore)
+<FilesMatch "^_">
+    Require all denied
+</FilesMatch>

@@ -18,7 +18,7 @@ $themeColor  = Settings::get('theme_color', '#7c3aed');
 $monetagZone = Settings::get('monetag_zone_id', '11211905');
 $maintenance = Settings::getBool('maintenance_mode', false);
 $logo        = Settings::get('logo', '');
-$ver         = '1.1.2';
+$ver         = '1.2.0';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,6 +41,26 @@ $ver         = '1.1.2';
 <script src="//libtl.com/sdk.js" data-zone="<?= Security::e($monetagZone) ?>" data-sdk="show_<?= Security::e($monetagZone) ?>"></script>
 </head>
 <body>
+
+<!-- Loading welcome splash (shown for 5 seconds on launch) -->
+<div id="mtaskSplash" class="splash">
+    <div class="splash-inner">
+        <img src="https://doge.gominer.online/assets/img/logo.png" alt="<?= Security::e($siteName) ?>" class="splash-logo">
+        <div class="splash-name"><?= Security::e($siteName) ?></div>
+        <div class="splash-loader"><span></span><span></span><span></span></div>
+    </div>
+</div>
+<script>
+    // Keep the splash visible for exactly 5 seconds, then fade out.
+    (function () {
+        var splash = document.getElementById('mtaskSplash');
+        if (!splash) return;
+        setTimeout(function () {
+            splash.classList.add('hide');
+            setTimeout(function () { if (splash && splash.parentNode) splash.parentNode.removeChild(splash); }, 600);
+        }, 5000);
+    })();
+</script>
 
 <!-- App boot config exposed to JS -->
 <script>
