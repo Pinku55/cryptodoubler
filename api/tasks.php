@@ -20,9 +20,14 @@ $userId = (int) $user['id'];
 $action = input('action', 'list');
 
 if ($action === 'list') {
+    // Exclude tasks the user has already completed (they auto-hide).
     $tasks = Database::fetchAll(
         'SELECT id, title, description, category, url, image, reward, wait_time, verify_type
-         FROM tasks WHERE status = "active" ORDER BY sort_order ASC, id DESC'
+         FROM tasks
+         WHERE status = "active"
+           AND id NOT IN (SELECT task_id FROM task_completions WHERE user_id = ? AND status = "completed")
+         ORDER BY sort_order ASC, id DESC',
+        [$userId]
     );
 
     // Attach completion status per task.

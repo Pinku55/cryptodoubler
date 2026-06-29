@@ -442,10 +442,16 @@
                     toast(c.message, 'success');
                     State.user.balance = c.data.balance;
                     state = 'done';
-                    btn.textContent = 'Done';
-                    btn.classList.add('done');
-                    btn.classList.remove('ready');
-                    card.classList.add('bounce');
+                    // Auto-hide the completed task with a slide-out animation.
+                    card.classList.add('removing');
+                    setTimeout(() => {
+                        card.remove();
+                        // Show an empty state if no tasks remain.
+                        if (!document.querySelector('.task-card')) {
+                            const host = document.querySelector('.app-main .stagger') || document.querySelector('.app-main');
+                            if (host) host.innerHTML = '<div class="empty"><i class="fa-solid fa-circle-check"></i>All tasks completed! Check back later for more.</div>';
+                        }
+                    }, 420);
                 } else {
                     // Allow the user to retry claiming (e.g. membership not met yet).
                     state = 'claim';
